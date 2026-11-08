@@ -511,6 +511,17 @@
   .offline-overlay .eagle-video{display:none}
   .offline-overlay.is-eagle .eagle-video{display:block}
   .offline-overlay.is-eagle .off-msg{display:none}
+  /* eagle: the video is drawn on a canvas with the white removed, so there is never a white box (any browser, any screen) */
+  .eagle-video{position:absolute !important;opacity:0 !important;pointer-events:none !important;filter:none !important;mix-blend-mode:normal !important;-webkit-mix-blend-mode:normal !important}
+  .eagle-canvas{width:170px;height:170px;display:block;pointer-events:none;user-select:none;opacity:0;transform:scale(1);transform-origin:50% 50%;will-change:transform}
+  .intro-loader.is-showing .eagle-canvas{opacity:1}
+  .intro-loader.is-leaving .eagle-canvas{transform:scale(.01);transition:transform .65s cubic-bezier(.5,0,.75,.2)}
+  .intro-loader.has-msg .eagle-canvas{display:none}
+  @media (max-width:480px){.eagle-canvas{width:140px;height:140px}}
+  .offline-overlay .eagle-canvas{display:none;opacity:1}
+  .offline-overlay.is-eagle .eagle-canvas{display:block}
+  html.ek-fail .eagle-video{position:static !important;opacity:1 !important;filter:brightness(1.18) contrast(1.45) !important;mix-blend-mode:multiply !important}
+  html.ek-fail .eagle-canvas{display:none !important}
   .off-msg{width:min(340px,88vw);color:#000;font-family:"Arial Black","LyfeBlack","Arial Bold",Gadget,sans-serif}
   .off-msg h2{margin:0 0 8px;font-size:18px;font-weight:700;line-height:1.2;color:#000}
   .off-msg p{margin:0 0 18px;font-size:13px;line-height:1.45;font-weight:400;font-family:Arial,sans-serif;color:#000}
@@ -4551,6 +4562,35 @@ window.lyfeApi=function(path,d){
   window.addEventListener('load',function(){ setTimeout(mid,60); });
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(mid);
   document.addEventListener('click',function(){ setTimeout(mid,80); },true);
+})();
+</script>
+<script>
+(function(){
+  var vids=document.querySelectorAll('video.eagle-video'); if(!vids.length) return;
+  var N=360;
+  Array.prototype.forEach.call(vids,function(v){
+    var c=document.createElement('canvas'); c.width=N; c.height=N; c.className='eagle-canvas'; c.setAttribute('aria-hidden','true');
+    v.parentNode.insertBefore(c,v);
+    var ctx=c.getContext('2d',{willReadFrequently:true}), last=-1;
+    function draw(){
+      if(!document.documentElement.contains(v)) return;
+      try{
+        if(v.readyState>=2 && v.currentTime!==last){
+          last=v.currentTime;
+          ctx.drawImage(v,0,0,N,N);
+          var im=ctx.getImageData(0,0,N,N), d=im.data;
+          for(var i=0;i<d.length;i+=4){
+            var l=d[i]*.299+d[i+1]*.587+d[i+2]*.114, a=(242-l)/150;
+            a=a<0?0:(a>1?1:a);
+            d[i]=0; d[i+1]=0; d[i+2]=0; d[i+3]=a*255;
+          }
+          ctx.putImageData(im,0,0);
+        }
+      }catch(e){ document.documentElement.classList.add('ek-fail'); return; }
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+  });
 })();
 </script>
 </body>
