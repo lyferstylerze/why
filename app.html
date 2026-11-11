@@ -12,9 +12,9 @@
   // opening on a page link (#privacy...): keep the home page hidden until that page is ready, so home never flashes first
   try{
     if(location.hash.length>1){
-      var st=document.createElement('style'); st.id='preRouteCss'; st.textContent='html.pre-route #homePage{display:none!important}';
+      var st=document.createElement('style'); st.id='preRouteCss'; st.textContent='html.pre-route{visibility:hidden!important}';
       document.head.appendChild(st); document.documentElement.classList.add('pre-route');
-      var done=function(){ document.documentElement.classList.remove('pre-route'); };
+      var done=function(){ try{ window.scrollTo(0,0); }catch(x){} document.documentElement.classList.remove('pre-route'); };
       var mo=new MutationObserver(function(){ if(document.querySelector('.info-page.is-active,#cartPage.is-active,#productPage.is-active')){ mo.disconnect(); done(); } });
       var go=function(){ if(document.body) mo.observe(document.body,{attributes:true,subtree:true,attributeFilter:['class']}); else setTimeout(go,5); };
       go(); setTimeout(function(){ mo.disconnect(); done(); },3000);
@@ -31,7 +31,10 @@
     if(navigator.onLine===false) return;            // offline: leave it to the normal handlers
     var key=a.classList.contains('continue-shopping')?'home':(a.getAttribute('data-open')||'home');
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    // the screen goes white at once (like the eagle logo), so nothing else can be seen while the page reloads
+    try{ document.documentElement.style.visibility='hidden'; window.scrollTo(0,0); }catch(x){}
     try{ history.replaceState(null,'',location.pathname+location.search+(key==='home'?'':'#'+key)); }catch(x){}
+    setTimeout(function(){ try{ document.documentElement.style.visibility=''; }catch(x){} },6000);   // safety: never leave the page blank
     location.reload();
   },true);
 })();
