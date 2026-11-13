@@ -4,41 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lyfe</title>
-<script>
-(function(){
-  // CONTINUE SHOPPING, HOME, PRIVACY, TERMS, ACCESSIBILITY, HELP (and the other menu / footer links) refresh the whole page, same as the eagle logo.
-  // This sits at the very top of the page so it works even while the site is still loading.
-  // The refresh happens straight away and the site opens on the page you clicked (the page is not shown first).
-  // opening on a page link (#privacy...): keep the home page hidden until that page is ready, so home never flashes first
-  try{
-    if(location.hash.length>1){
-      var st=document.createElement('style'); st.id='preRouteCss'; st.textContent='html.pre-route{visibility:hidden!important}';
-      document.head.appendChild(st); document.documentElement.classList.add('pre-route');
-      var done=function(){ try{ window.scrollTo(0,0); }catch(x){} document.documentElement.classList.remove('pre-route'); };
-      var mo=new MutationObserver(function(){ if(document.querySelector('.info-page.is-active,#cartPage.is-active,#productPage.is-active')){ mo.disconnect(); done(); } });
-      var go=function(){ if(document.body) mo.observe(document.body,{attributes:true,subtree:true,attributeFilter:['class']}); else setTimeout(go,5); };
-      go(); setTimeout(function(){ mo.disconnect(); done(); },3000);
-    }
-  }catch(x){}
-  try{ if('scrollRestoration' in history) history.scrollRestoration='manual'; }catch(e){}
-  document.addEventListener('click',function(e){
-    var t=e.target; if(!t||!t.closest) return;
-    var a=t.closest('a[data-open], .continue-shopping');
-    if(!a) return;
-    if(!e.isTrusted) return;                         // only real clicks by a person (the site itself clicks links to open a page from the address)
-    if(e.button&&e.button!==0) return;
-    if(e.ctrlKey||e.metaKey||e.shiftKey||e.altKey) return;
-    if(navigator.onLine===false) return;            // offline: leave it to the normal handlers
-    var key=a.classList.contains('continue-shopping')?'home':(a.getAttribute('data-open')||'home');
-    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-    // the screen goes white at once (like the eagle logo), so nothing else can be seen while the page reloads
-    try{ document.documentElement.style.visibility='hidden'; window.scrollTo(0,0); }catch(x){}
-    try{ history.replaceState(null,'',location.pathname+location.search+(key==='home'?'':'#'+key)); }catch(x){}
-    setTimeout(function(){ try{ document.documentElement.style.visibility=''; }catch(x){} },6000);   // safety: never leave the page blank
-    location.reload();
-  },true);
-})();
-</script>
 <meta name="description" content="Shop the Lyfe Official Store for exclusive Lyfe products.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Lyfe">
@@ -4626,6 +4591,40 @@ window.lyfeApi=function(path,d){
     }
     requestAnimationFrame(draw);
   });
+})();
+</script>
+<script>
+/* Firefox on Windows 11 draws a thin floating scrollbar that hides itself. This draws the same black / white page scrollbar the other browsers show.
+   It only runs in Firefox on a desktop; every other browser keeps its own scrollbar exactly as it is. */
+(function(){
+  var ua=navigator.userAgent||'';
+  if(!/Firefox\//.test(ua)||/Android|Mobile|Tablet/i.test(ua)) return;
+  try{ if(!window.matchMedia('(hover:hover) and (pointer:fine)').matches) return; }catch(e){}
+  var H=document.documentElement, W=15;
+  var st=document.createElement('style');
+  st.textContent='html.ff-sb{scrollbar-width:none!important;scrollbar-gutter:auto!important}'
+   +'#ffSb{position:fixed;top:0;right:0;bottom:0;width:'+W+'px;background:var(--sb-track,#fff);z-index:2147483000;user-select:none;-moz-user-select:none;touch-action:none}'
+   +'#ffSb i{position:absolute;left:0;right:0;top:0;height:40px;background:#000;border-radius:0;cursor:default}'
+   +'html.ff-off #ffSb,html.ap-npfs #ffSb,html.co-open #ffSb,html.ap-qs #ffSb{display:none!important}';
+  document.head.appendChild(st);
+  var bar=document.createElement('div'), th=document.createElement('i');
+  bar.id='ffSb'; bar.setAttribute('aria-hidden','true'); bar.appendChild(th); document.body.appendChild(bar);
+  H.classList.add('ff-sb');
+  function m(){ var vh=window.innerHeight, sh=Math.max(H.scrollHeight,document.body.scrollHeight); return {vh:vh,sh:sh,max:Math.max(0,sh-vh)}; }
+  function upd(){
+    var d=m(); if(d.max<=1){ bar.style.visibility='hidden'; return; } bar.style.visibility='';
+    var h=Math.max(40,Math.round(d.vh*d.vh/d.sh)), y=window.pageYOffset;
+    th.style.height=h+'px'; th.style.transform='translateY('+Math.round(Math.min(1,y/d.max)*(d.vh-h))+'px)';
+  }
+  var drag=null;
+  th.addEventListener('pointerdown',function(e){ e.preventDefault(); e.stopPropagation(); var d=m(); drag={y:e.clientY,s:window.pageYOffset,h:th.offsetHeight}; try{ th.setPointerCapture(e.pointerId); }catch(x){} });
+  th.addEventListener('pointermove',function(e){ if(!drag) return; var d=m(), room=d.vh-drag.h; if(room<=0) return; window.scrollTo(0,drag.s+(e.clientY-drag.y)/room*d.max); });
+  ['pointerup','pointercancel'].forEach(function(n){ th.addEventListener(n,function(){ drag=null; }); });
+  bar.addEventListener('pointerdown',function(e){ if(e.target!==bar) return; var d=m(), h=th.offsetHeight, room=d.vh-h; if(room<=0) return;
+    window.scrollTo(0,Math.min(1,Math.max(0,(e.clientY-h/2)/room))*d.max); });
+  window.addEventListener('scroll',upd,{passive:true}); window.addEventListener('resize',upd);
+  try{ new ResizeObserver(upd).observe(document.body); }catch(e){}
+  setInterval(upd,400); upd();
 })();
 </script>
 </body>
